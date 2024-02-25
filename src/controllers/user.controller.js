@@ -26,7 +26,9 @@ const registerUser = asyncHandler(async (req, res, next) => {
     throw new errorHandler(400, "All fields are required");
   }
   // check if user alredy exist : username and email
-  const alredyExistUser = await User?.findOne({ $or: [{ userName }, { email }] });
+  const alredyExistUser = await User?.findOne({
+    $or: [{ userName }, { email }],
+  });
   if (alredyExistUser) {
     throw new errorHandler(
       409,
@@ -35,10 +37,9 @@ const registerUser = asyncHandler(async (req, res, next) => {
   }
   // check for cover images and check for avatar
   // multer give us req.files object
-  const avatarLocalPath = req.files?.avatar[0]?.path;
-  const coverImageLocalPath = req.files?.coverImage[0]?.path;
-//   const avatarLocalPath = req.files?.avatar?.[0]?.path;
-// const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
+
+  const avatarLocalPath = req.files?.avatar?.[0]?.path;
+  const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
   if (!avatarLocalPath) {
     throw new errorHandler(400, "Avatar file is required");
   }
