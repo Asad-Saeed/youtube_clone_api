@@ -4,6 +4,7 @@ import { responseHandler } from "../utils/handler/response.handler.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary/cloudinary.js";
 
+// Register User
 const registerUser = asyncHandler(async (req, res, next) => {
   ////Algorithm////
   // get user detail from frontend
@@ -73,9 +74,95 @@ const registerUser = asyncHandler(async (req, res, next) => {
       new responseHandler(200, createdUser, "User registered successfully")
     );
 });
+// Generate Access And RefreshTokens
+const generateAccessAndRefreshTokens = async (userId) => {
+  try {
+    const user = await User.findById(userId);
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
+    user.refreshToken = refreshToken;
+    // validateBeforeSave used for validation removed
+    await user.save({ validateBeforeSave: false });
+    return { refreshToken, accessToken };
+  } catch (error) {
+    throw new errorHandler(
+      500,
+      "Something went wrong while generating refresh and access tikem"
+    );
+  }
+};
 
+// Login User
 const loginUser = asyncHandler(async (req, res, next) => {
-  res.status(200).json({ message: "ok" });
+  // get user detail from frontend
+  // username or email validation
+  // find the user
+  // password match
+  // generate access token and refresh token
+  // send data to cookies
+  const { email, userName, password } = req.body;
+  if (!userName || !email) {
+    throw new errorHandler(400, "User Name and Email Required!");
+  }
+  const user = await User.findOne({
+    $or: [userName, email],
+  });
+  if (!user) {
+    throw new errorHandler(400, "User doesnot exist");
+  }
+  const isPasswordCorrect = await user.isPasswordCorrect(password);
+  if (!isPasswordCorrect) {
+    throw new errorHandler(401, "Invalid user crediential");
+  }
+  const { refreshToken, accessToken } = await generateAccessAndRefreshTokens(
+    user._id
+  );
+  const loggedInUser = await User?.findById(user?._id).select(
+    "-password -refreshToken"
+  );
+  // send cookies
+  // by these options cookies can only be modified from server
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new responseHandler(200, {
+        user: loggedInUser,
+        refreshToken,
+        accessToken,
+        message: "User loggedIn Successfully",
+      })
+    );
 });
 
-export { registerUser, loginUser };
+// Logout User
+
+const logoutUser = asyncHandler(async (req, res, next) => {
+  await User.findByIdAndUpdate(
+    req?.user._id,
+    {
+      $set: {
+        refreshToken: undefined,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+  return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new responseHandler(200, {}, "User logged out"));
+});
+
+export { registerUser, loginUser, logoutUser };
