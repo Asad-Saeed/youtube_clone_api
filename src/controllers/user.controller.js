@@ -78,8 +78,8 @@ const registerUser = asyncHandler(async (req, res, next) => {
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
     const user = await User.findById(userId);
-    const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
+    const accessToken = user.generateAccessToken().toString();
+    const refreshToken = user.generateRefreshToken().toString();
     user.refreshToken = refreshToken;
     // validateBeforeSave used for validation removed
     await user.save({ validateBeforeSave: false });
@@ -105,8 +105,8 @@ const loginUser = asyncHandler(async (req, res, next) => {
     throw new errorHandler(400, "User Name and Email Required!");
   }
   const user = await User.findOne({
-    $or: [{ userName: userName }, { email: email }],
-  });
+  $or: [{ userName: userName }, { email: email }],
+});
   if (!user) {
     throw new errorHandler(400, "User doesnot exist");
   }
@@ -146,23 +146,24 @@ const logoutUser = asyncHandler(async (req, res, next) => {
   await User.findByIdAndUpdate(
     req?.user._id,
     {
-      $set: {
-        refreshToken: undefined,
-      },
+      $unset: { refreshToken: 1 },
     },
     {
       new: true,
     }
   );
+
   const options = {
     httpOnly: true,
     secure: true,
   };
+
   return res
     .status(200)
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
     .json(new responseHandler(200, {}, "User logged out"));
 });
+
 
 export { registerUser, loginUser, logoutUser };

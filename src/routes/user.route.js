@@ -21,7 +21,6 @@ userRouter.route("/register").post(
   registerUser
 );
 userRouter.route("/login").post(loginUser);
-
 // Secured Routes
 userRouter.route("/logout").post(verifyJWT, logoutUser);
 export default userRouter;
