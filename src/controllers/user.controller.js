@@ -101,11 +101,11 @@ const loginUser = asyncHandler(async (req, res, next) => {
   // generate access token and refresh token
   // send data to cookies
   const { email, userName, password } = req.body;
-  if (!userName || !email) {
+  if (!userName && !email) {
     throw new errorHandler(400, "User Name and Email Required!");
   }
   const user = await User.findOne({
-    $or: [userName, email],
+    $or: [{ userName: userName }, { email: email }],
   });
   if (!user) {
     throw new errorHandler(400, "User doesnot exist");
