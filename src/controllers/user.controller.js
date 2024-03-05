@@ -105,8 +105,8 @@ const loginUser = asyncHandler(async (req, res, next) => {
     throw new errorHandler(400, "User Name and Email Required!");
   }
   const user = await User.findOne({
-  $or: [{ userName: userName }, { email: email }],
-});
+    $or: [{ userName: userName }, { email: email }],
+  });
   if (!user) {
     throw new errorHandler(400, "User doesnot exist");
   }
@@ -142,7 +142,7 @@ const loginUser = asyncHandler(async (req, res, next) => {
 
 // Logout User
 
-const logoutUser = asyncHandler(async (req, res, next) => {
+const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req?.user._id,
     {
@@ -164,6 +164,5 @@ const logoutUser = asyncHandler(async (req, res, next) => {
     .clearCookie("refreshToken", options)
     .json(new responseHandler(200, {}, "User logged out"));
 });
-
 
 export { registerUser, loginUser, logoutUser };
