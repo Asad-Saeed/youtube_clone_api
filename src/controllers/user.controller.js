@@ -215,7 +215,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
   // if(!(newPassword===confPassword)){
   //   throw new errorHandler(400,"New password and confirm password does not match")
   // }
-  const user = await User.findById(req.user?.id);
+  const user = await User.findById(req.user?._id);
   const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
   if (!isPasswordCorrect) {
     throw new errorHandler(400, "Invalid old password");
@@ -227,4 +227,42 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     .json(new responseHandler(200, {}, "Password change successfully!"));
 });
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken };
+// Getting Current User
+const getCurrentUser = asyncHandler(async (req, res) => {
+  return res
+    .status(200)
+    .json(200, req.user, "current user fetched successfully");
+});
+
+// Update Account Details
+const updateAccountDetails = asyncHandler(async (req, res) => {
+  const { fullName, email } = req.body;
+  if (!fullName || !email) {
+    throw new errorHandler(400, "All fields are required");
+  }
+  const user = await User.findByIdAndUpdate(
+    req.body?._id,
+    {
+      $set: {
+        fullName: fullName,
+        email: email,
+      },
+    },
+    { new: true }
+  ).select("-password");
+  return res
+    .status(200)
+    .json(
+      new responseHandler(200, user, "Account detail updated successfully")
+    );
+});
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  changeCurrentPassword,
+  getCurrentUser,
+  updateAccountDetails,
+};
