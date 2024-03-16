@@ -231,7 +231,9 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 const getCurrentUser = asyncHandler(async (req, res) => {
   return res
     .status(200)
-    .json(new responseHandler(200, req.user, "current user fetched successfully"));
+    .json(
+      new responseHandler(200, req.user, "current user fetched successfully")
+    );
 });
 
 // Update Account Details
@@ -304,6 +306,78 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     .status(200)
     .json(new responseHandler(200, user, "CoverImage updated successfully!"));
 });
+
+// Get User Channel Profile
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+  const { userName } = req.params;
+  if (!userName?.trim()) {
+    throw new errorHandler(400, "Username is missing");
+  }
+  // Aggregation
+  const channel = await User.aggregate([
+    {
+      $match: {
+        userName: userName?.toLowerCase(),
+      },
+    },
+    {
+      $lookup: {
+        // db make every model lowercase and plural
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "channel",
+        as: "subscribers",
+      },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedTo",
+      },
+    },
+    {
+      // Field
+      $addFields: {
+        subscribersCount: {
+          $size: "$subscribers",
+        },
+        channelsSubscribedToCount: {
+          $size: "$subscribedTo",
+        },
+        isSubscribed: {
+          $cond: {
+            if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+            then: true,
+            else: false,
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        fullName: 1,
+        userName: 1,
+        subscribersCount: 1,
+        channelsSubscribedToCount: 1,
+        isSubscribed: 1,
+        avatar: 1,
+        coverImage: 1,
+        email: 1,
+      },
+    },
+  ]);
+  if (!channel?.length) {
+    throw new errorHandler(400, "channel does not exist!");
+  }
+  return res
+    .status(200)
+    .json(
+      new responseHandler(200, channel[0], "User Channel fetched successfully")
+    );
+});
+
 export {
   registerUser,
   loginUser,
