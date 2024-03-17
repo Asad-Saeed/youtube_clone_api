@@ -4,6 +4,7 @@ import { responseHandler } from "../utils/handler/response.handler.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary/cloudinary.js";
 import jwt from "jsonwebtoken";
+import { mongoose } from "mongoose";
 
 // Register User
 const registerUser = asyncHandler(async (req, res, next) => {
@@ -378,6 +379,65 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     );
 });
 
+// Get Watch History
+const getWatchHistory = asyncHandler(async (req, res) => {
+  const user = await User.aggregate([
+    {
+      $match: {
+        // make mongoose object id
+        _id: new mongoose.Types.ObjectId(req.user?._id),
+      },
+    },
+    {
+      $lookup: {
+        // make lowercas and plural
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        // Sub Pipline
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              // Sub Pipline
+              pipeline: [
+                {
+                  $project: {
+                    fullName: 1,
+                    userName: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
+          },
+          // lookup return array sofrontend need to get first value here we set data formate not send array
+          {
+            $addFields: {
+              owner: {
+                $first: "$owner",
+              },
+            },
+          },
+        ],
+      },
+    },
+  ]);
+  return res
+    .status(200)
+    .json(
+      new responseHandler(
+        200,
+        user[0]?.watchHistory,
+        "Watch history fetched successfully"
+      )
+    );
+});
+
 export {
   registerUser,
   loginUser,
@@ -389,4 +449,5 @@ export {
   updateUserAvatar,
   updateUserCoverImage,
   getUserChannelProfile,
+  getWatchHistory,
 };
