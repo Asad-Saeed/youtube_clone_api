@@ -148,7 +148,7 @@ const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req?.user._id,
     {
-      $unset: { refreshToken: 1 },
+      $unset: { refreshToken: 1 },  //This remove field from document
     },
     {
       new: true,
@@ -175,7 +175,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     throw new errorHandler(401, "Unauthorized Request");
   }
   try {
-    const decodedToken = jwt.verify(
+    const decodedToken = await jwt.verify(
       incomingRefreshToken,
       process.env.REFRESH_TOKEN_SECRET
     );
